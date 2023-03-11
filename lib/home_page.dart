@@ -4,7 +4,9 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:untitled/cachedImage.dart';
 import 'package:untitled/news_response.dart';
+import 'package:untitled/webView.dart';
 
 import 'category.dart';
 
@@ -20,6 +22,7 @@ class _HomePageState extends State<HomePage> {
   bool loading = true;
   NewsResponse? newsResponse;
   NewsResponse? newsResponseCarousel;
+  TextEditingController textEditingController= TextEditingController();
 
   void fetchNews() async {
     const apiKey = "868c3f8599fe4ece9974bf166ec9171f";
@@ -50,6 +53,12 @@ class _HomePageState extends State<HomePage> {
     carousalNews();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+    textEditingController.dispose();
+  }
+
   void carousalNews() async {
     const apiKey = "868c3f8599fe4ece9974bf166ec9171f";
     String url =
@@ -78,188 +87,210 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("News App"), centerTitle: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 4, horizontal: 3),
-              margin:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30.0),
-                color: Colors.black12,
-              ),
-              child: Row(children: [
-                GestureDetector(
-                    onTap: () {},
-                    child: Container(
-                        margin: const EdgeInsets.all(10),
-                        child: const Icon(
-                          Icons.search,
-                          color: Colors.indigoAccent,
-                        ))),
-                const Expanded(
-                  child: TextField(
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: "Search",
-                        border: InputBorder.none,
-                      )),
-                ),
-              ]),
-            ),
-            Container(
-              height: 70.0,
-              child: ListView.builder(
-                  shrinkWrap: true,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: navBarItem.length,
-                  itemBuilder: (context, index) {
-                    return InkWell(
-                      onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (context) {
-                          return Category(query: navBarItem[index]);
-                        }));
-                      },
-                      child: Container(
-                          height: 60.0,
-                          width: 100,
+      body: (loading)
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 3),
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 6.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30.0),
+                      color: Colors.black12,
+                    ),
+                    child: Row(children: [
+                      Container(
                           margin: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          padding: const EdgeInsets.all(10),
-                          child: Center(
-                              child: Text(
-                            navBarItem[index],
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: Colors.white),
-                          ))),
-                    );
-                  }),
-            ),
-            (loading == true)
-                ? CircularProgressIndicator()
-                : CarouselSlider(
-                    items: newsResponseCarousel?.articles?.map((item) {
-                      return Builder(builder: (BuildContext context) {
-                        return Container(
-                            margin: const EdgeInsets.all(15),width:size.width,
-                            child: Stack(children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(20.0),
-                                child: Image.network(
-                                  item.urlToImage ?? "",
-                                  fit: BoxFit.cover,
-                                  height: double.infinity,
+                          child: const Icon(
+                            Icons.search,
+                            color: Colors.indigoAccent,
+                          )),
+                      Expanded(
+                        child: TextField(
+                          controller: textEditingController,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (val) {
+                              if( val.isNotEmpty){
+                                textEditingController.text = "";
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return Category(query: val);
+                              }));
+                            }},
+                            decoration: const InputDecoration(
+                              hintText: "Search",
+                              border: InputBorder.none,
+                            )),
+                      ),
+                    ]),
+                  ),
+                  Container(
+                    height: 70.0,
+                    child: ListView.builder(
+                        shrinkWrap: true,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: navBarItem.length,
+                        itemBuilder: (context, index) {
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return Category(query: navBarItem[index]);
+                              }));
+                            },
+                            child: Container(
+                                height: 60.0,
+                                width: 100,
+                                margin: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                              ),
-                              Positioned(
-                                  left: 8,
-                                  bottom: 5,
-                                  child: SizedBox(
-                                    width: size.width * 0.6,
+                                padding: const EdgeInsets.all(10),
+                                child: Center(
                                     child: Text(
-                                      item.title ?? "",
-                                      maxLines: 1,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          overflow: TextOverflow.ellipsis,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ))
-                            ]));
-                      });
-                    }).toList(),
-                    options: CarouselOptions(
-                        autoPlay: true, enlargeCenterPage: true)),
-            Container(
-                padding: const EdgeInsets.only(left: 20),
-                alignment: Alignment.topLeft,
-                child: const Text(
-                  " Latest News :- ",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                      decoration: TextDecoration.underline),
-                )),
-            (loading == true)
-                ? CircularProgressIndicator()
-                : ListView.builder(
+                                  navBarItem[index],
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: Colors.white),
+                                ))),
+                          );
+                        }),
+                  ),
+                  if (newsResponseCarousel?.articles != null)
+                    CarouselSlider(
+                        items: newsResponseCarousel?.articles?.map((item) {
+                          return Builder(builder: (BuildContext context) {
+                            return InkWell(
+                              onTap: () {
+                                Navigator.push(context,
+                                    MaterialPageRoute(builder: (context) {
+                                  return WebView(url: item.url ?? "");
+                                }));
+                              },
+                              child: Container(
+                                  margin: const EdgeInsets.all(15),
+                                  width: size.width,
+                                  child: Stack(children: [
+                                    ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(20.0),
+                                        child: CachedImage(
+                                            height: double.infinity,
+                                            imageUrl: item.urlToImage ?? "")),
+                                    Positioned(
+                                        left: 8,
+                                        bottom: 5,
+                                        child: SizedBox(
+                                          width: size.width * 0.6,
+                                          child: Text(
+                                            item.title ?? "",
+                                            maxLines: 1,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                overflow: TextOverflow.ellipsis,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ))
+                                  ])),
+                            );
+                          });
+                        }).toList(),
+                        options: CarouselOptions(
+                            autoPlay: true, enlargeCenterPage: true)),
+                  Container(
+                      padding: const EdgeInsets.only(left: 20),
+                      alignment: Alignment.topLeft,
+                      child: const Text(
+                        " Latest News :- ",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                            decoration: TextDecoration.underline),
+                      )),
+                  ListView.builder(
                     itemCount: 5,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (context, index) {
-                      return Container(
-                          margin: const EdgeInsets.all(10),
-                          child: Stack(children: [
-                            ClipRRect(
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (context) {
+                            return WebView(
+                                url: newsResponse?.articles?[index].url ?? "");
+                          }));
+                        },
+                        child: Container(
+                            margin: const EdgeInsets.all(10),
+                            child: Stack(children: [
+                              ClipRRect(
                                 borderRadius: BorderRadius.circular(20.0),
-                                child: Image.network(
-                                  newsResponse
+                                child: CachedImage(
+                                  imageUrl: newsResponse
                                           ?.articles?[index].urlToImage ??
                                       "",
-                                  fit: BoxFit.cover,
                                   width: size.width,
-                                )),
-                            Positioned(
-                                left: 7,
-                                bottom: 8,
-                                child: SizedBox(
-                                  width: size.width * 0.90,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        newsResponse
-                                                ?.articles?[index].title ??
-                                            "",
-                                        maxLines: 1,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            overflow: TextOverflow.ellipsis,
-                                            fontSize: 20),
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      Text(
-                                        newsResponse?.articles?[index]
-                                                .description ??
-                                            "",
-                                        maxLines: 2,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            overflow:
-                                                TextOverflow.ellipsis),
-                                      )
-                                    ],
-                                  ),
-                                ))
-                          ]));
+                                  height: size.height * 0.3,
+                                ),
+                              ),
+                              Positioned(
+                                  left: 7,
+                                  bottom: 8,
+                                  child: SizedBox(
+                                    width: size.width * 0.90,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          newsResponse
+                                                  ?.articles?[index].title ??
+                                              "",
+                                          maxLines: 1,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              overflow: TextOverflow.ellipsis,
+                                              fontSize: 20),
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        Text(
+                                          newsResponse?.articles?[index]
+                                                  .description ??
+                                              "",
+                                          maxLines: 2,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              overflow: TextOverflow.ellipsis),
+                                        )
+                                      ],
+                                    ),
+                                  ))
+                            ])),
+                      );
                     },
                   ),
-            ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => Category(
-                                query: "India",
-                              )));
-                },
-                child: const Text("Show More"))
-          ],
-        ),
-      ),
+                  ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Category(
+                                      query: "India",
+                                    )));
+                      },
+                      child: const Text("Show More"))
+                ],
+              ),
+            ),
     );
   }
 }
